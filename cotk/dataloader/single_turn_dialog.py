@@ -338,13 +338,17 @@ class BERTSingleTurnDialog(BERTLanguageProcessingBase):
 	def get_teacher_forcing_metric(self, gen_log_prob_key="gen_log_prob",\
 					   invalid_vocab=False):
 		'''Get metrics for teacher-forcing.
+
 		It contains:
+
 		* :class:`.metric.PerplexityMetric`
+
 		Arguments:
 			gen_log_prob_key (str):  The key of predicted log probablilty over words.
 				Refer to :class:`.metric.PerplexityMetric`. Default: ``gen_log_prob``.
 			invalid_vocab (bool): Whether ``gen_log_prob`` contains invalid vocab.
 				Refer to :class:`.metric.PerplexityMetric`. Default: ``False``.
+
 		Returns:
 			A :class:`.metric.MetricChain` object.
 		'''

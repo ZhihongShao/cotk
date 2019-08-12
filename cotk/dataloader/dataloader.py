@@ -2,7 +2,12 @@
 A module for dataloader
 '''
 import random
+from collections import Counter
+from itertools import chain, cycle
+
 import numpy as np
+from nltk.tokenize import WordPunctTokenizer
+
 from .._utils import trim_before_target
 from .._utils.metaclass import DocStringInheritor, LoadClassInterface
 
@@ -76,6 +81,126 @@ class LanguageProcessingBase(Dataloader):
 			idx = self.unk_id
 		return idx
 
+	def tokenize(self, sentence, remains_capital, tokenizer):
+		r'''Convert sentence(str) to a list of tokens(str)
+
+		Arguments:
+			sentence (str): a string to be tokenized
+
+		Returns:
+			list: a list of tokens(str)
+		'''
+		if remains_capital:
+			sentence = sentence.strip()
+		else:
+			sentence = sentence.lower().strip()
+		if tokenizer == 'nltk':
+			return WordPunctTokenizer().tokenize(sentence)
+		elif tokenizer == 'space':
+			return sentence.split()
+		else:
+			raise ValueError('tokenizer of dataloader should be either "nltk" or "space"')
+
+	def _general_load_data(self, file_path, data_keys, \
+		min_vocab_times, max_sent_length, invalid_vocab_times):
+		r'''This function implements a general loading process.
+
+		Arguments:
+			file_path (str): A string indicating the path of dataset.
+			data_keys (str): A list indicates the key of self.data['train']. For example: ['sent']
+			valid_vocab_times (int): A cut-off threshold of valid tokens. All tokens appear
+				not less than `min_vocab_times` in **training set** will be marked as valid words.
+			max_sent_length (int): All sentences longer than ``max_sent_length`` will be shortened
+				to first ``max_sent_length`` tokens.
+			invalid_vocab_times (int):  A cut-off threshold of invalid tokens. All tokens appear
+				not less than ``invalid_vocab_times`` in the **whole dataset** (except valid words) will be
+				marked as invalid words. Otherwise, they are unknown words, which are ignored both for
+				model or metrics.
+
+		Returns:
+			(tuple): containing:
+
+			* **all_vocab_list** (list): vocabulary list of the datasets,
+			  including valid and invalid vocabs.
+			* **valid_vocab_len** (int): the number of valid vocab.
+			  ``vocab_list[:valid_vocab_len]`` will be regarded as valid vocabs,
+			  while ``vocab_list[valid_vocab_len:]`` regarded as invalid vocabs.
+			* **data** (dict): a dict contains data.
+			* **data_size** (dict): a dict contains size of each item in data.
+		'''
+
+		origin_data = {}
+
+		for key in self.key_name:
+			f_file = open("%s/%s.txt" % (file_path, key))
+			origin_data[key] = {}
+			for data_key in data_keys:
+				origin_data[key][data_key] = []
+			for data_key, sent in zip(cycle(data_keys), map(self.tokenize, f_file.readlines())):
+				origin_data[key][data_key].append(sent)
+
+		def chain_allvocab(dic):
+			li = []
+			for data_key in data_keys:
+				li.extend(list(chain(*(dic[data_key]))))
+			return li
+
+		raw_vocab_list = chain_allvocab(origin_data['train'])
+		# Important: Sort the words preventing the index changes between
+		# different runs
+		vocab = sorted(Counter(raw_vocab_list).most_common(), \
+					   key=lambda pair: (-pair[1], pair[0]))
+		left_vocab = [x[0] for x in vocab if x[1] >= min_vocab_times]
+		vocab_list = self.ext_vocab + list(left_vocab)
+		valid_vocab_len = len(vocab_list)
+		valid_vocab_set = set(vocab_list)
+
+		for key in self.key_name:
+			if key == 'train':
+				continue
+			raw_vocab_list.extend(origin_data[key])
+
+		vocab = sorted(Counter(raw_vocab_list).most_common(), \
+					   key=lambda pair: (-pair[1], pair[0]))
+		left_vocab = [x[0] for x in vocab if x[1] >= invalid_vocab_times and x[0] not in valid_vocab_set]
+		vocab_list.extend(left_vocab)
+
+		print("valid vocab list length = %d" % valid_vocab_len)
+		print("vocab list length = %d" % len(vocab_list))
+
+		word2id = {w: i for i, w in enumerate(vocab_list)}
+		def line2id(line):
+			return ([self.go_id] + \
+					list(map(lambda word: word2id[word] if word in word2id else self.unk_id, line)) \
+					+ [self.eos_id])[:max_sent_length]
+
+		data = {}
+		data_size = {}
+		for key in self.key_name:
+			data[key] = {}
+			for data_key in data_keys:
+				data[key][data_key] = list(map(line2id, origin_data[key][data_key]))
+				if key not in data_size:
+					data_size[key] = len(data[key][data_key])
+				elif data_size[key] != len(data[key][data_key]):
+					raise RuntimeError("The number of lines of input %s.txt should be able divisible by %d" % (key, len(data_keys)))
+
+			vocab = chain_allvocab(origin_data[key])
+			vocab_num = len(vocab)
+			oov_num = sum([word not in word2id for word in vocab])
+			invalid_num = sum([word not in valid_vocab_set for word in vocab]) - oov_num
+			length = []
+			for data_key in data_keys:
+				length.extend([len(x) for x in origin_data[key][data_key]])
+			cut_num += np.sum( \
+				np.maximum( \
+					np.array(length) - max_sent_length + 1, \
+				0))
+			print( \
+				"%s set. invalid rate: %f, unknown rate: %f, max length before cut: %d, cut word rate: %f" % \
+				(key, invalid_num / vocab_num, oov_num / vocab_num, max(length), cut_num / vocab_num))
+		return vocab_list, valid_vocab_len, data, data_size
+
 	def _load_data(self):
 		r'''This function is called during the initialization.
 
@@ -89,18 +214,6 @@ class LanguageProcessingBase(Dataloader):
 			  while ``vocab_list[valid_vocab_len:]`` regarded as invalid vocabs.
 			* **data** (dict): a dict contains data.
 			* **data_size** (dict): a dict contains size of each item in data.
-		'''
-		raise NotImplementedError( \
-			"This function should be implemented by subclasses.")
-
-	def tokenize(self, sentence):
-		'''Convert sentence(str) to list of token(str)
-
-		Arguments:
-			sentence (str)
-
-		Returns:
-			sent (list): list of token(str)
 		'''
 		raise NotImplementedError( \
 			"This function should be implemented by subclasses.")

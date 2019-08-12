@@ -227,7 +227,10 @@ def copy_readme_from_github(model_name, target_path):
     build_dir = os.path.join("..", "build")
     local_dir = os.path.join("..", "build", model_name + "-master")
     #os.mkdirs(local_path, exist_ok=True)
-    _http_get(online_path, open(local_path, "wb"))
+    if os.path.exists(local_path):
+        print("skipping %s" % model_name)
+    else:
+        _http_get(online_path, open(local_path, "wb"))
     unzip_file(local_path, build_dir)
     shutil.copy(os.path.join(local_dir, "Readme.md"), 
             os.path.join(target_path, "Readme.md"))

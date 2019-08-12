@@ -3,6 +3,7 @@ A utils providing callback hooks.
 '''
 
 from inspect import signature
+from functools import wraps
 import pkg_resources
 
 #pylint: disable=global-statement
@@ -18,6 +19,7 @@ def invoke_listener(method, *argv):
 def hook_dataloader(fn):
 	r'''decorator for dataloader.__init___'''
 	sign = signature(fn)
+	@wraps(fn)
 	def wrapped(*args, **kwargs):
 		binded = sign.bind(*args, **kwargs)
 		binded.apply_defaults()
@@ -26,12 +28,14 @@ def hook_dataloader(fn):
 		del binded['self']
 		invoke_listener("add_dataloader", self, fn.__qualname__.split(".")[0], binded)
 		return fn(*args, **kwargs)
+
 	return wrapped
 
 def hook_standard_metric(metric_name=""):
 	r'''decorator for dataloader.get_metric'''
 	def decorator(fn):
 		sign = signature(fn)
+		@wraps(fn)
 		def wrapped(*args, **kwargs):
 			binded = sign.bind(*args, **kwargs)
 			binded.apply_defaults()
@@ -47,6 +51,7 @@ def hook_standard_metric(metric_name=""):
 def hook_wordvec(fn):
 	r'''decorator for wordvec.__init__'''
 	sign = signature(fn)
+	@wraps(fn)
 	def wrapped(*args, **kwargs):
 		binded = sign.bind(*args, **kwargs)
 		binded.apply_defaults()
