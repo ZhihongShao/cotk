@@ -21,7 +21,7 @@ class LanguageGeneration(LanguageProcessingBase):
 	"""
 
 	ARGUMENTS = r'''
-			file_id (str): A string indicating the source of MSCOCO dataset. {FILE_ID_DEFAULT}
+			file_id (str): A string indicating the source of language generation dataset. {FILE_ID_DEFAULT}
 			valid_vocab_times (int): A cut-off threshold of valid tokens. All tokens appear
 				not less than ``min_vocab_times`` in **training set** will be marked as valid words.
 				{VALID_VOCAB_TIMES_DEFAULT}
