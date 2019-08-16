@@ -221,7 +221,7 @@ class OpenSubtitles(SingleTurnDialog):
 		Movie and TV Subtitles. LREC 2016.
 	'''
 
-	ARGUMENTS = SingleTurnDialogRecorder.ARGUMENTS
+	ARGUMENTS = SingleTurnDialog.ARGUMENTS
 	FILE_ID_DEFAULT = r'''Default: ``resources://OpenSubtitles``.'''
 	VALID_VOCAB_TIMES_DEFAULT = r'''Default: ``10``.'''
 	MAX_SENT_LENGTH = r'''Default: ``50``.'''
