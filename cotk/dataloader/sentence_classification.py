@@ -81,7 +81,6 @@ class SentenceClassification(LanguageProcessingBase):
 		res_sent[res_sent >= self.valid_vocab_len] = self.unk_id
 		return res
 
-	@hooks.hook_standard_metric()
 	def get_metric(self, prediction_key="prediction"):
 		'''Get metrics for accuracy. In other words, this function
 		provides metrics for sentence classification task.
@@ -148,7 +147,7 @@ class SST(SentenceClassification):
 			return (label, sent)
 		origin_data = {}
 		for key in self.key_name:
-			f_file = open("%s/%s.txt" % (self._file_path, key))
+			f_file = open("%s/%s.txt" % (self._file_path, key), 'r', encoding='utf-8')
 			origin_data[key] = {}
 			_origin_data = list( \
 				map(parseline, f_file.readlines()))

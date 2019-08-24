@@ -1,5 +1,6 @@
 import copy
 import random
+import operator
 from unittest import mock
 
 import tqdm
@@ -112,6 +113,9 @@ class TestBleuCorpusMetric:
 			assert np.isclose(bcm.close()['bleu'], self.get_bleu(dataloader, data, reference_key, gen_key))
 		assert same_dict(data, _data)
 
+	def test_version(self):
+		version_test(BleuCorpusMetric, dataloader=FakeDataLoader())
+
 	@pytest.mark.skip
 	def test_bleu_bug(self):
 		dataloader = FakeDataLoader()
@@ -217,6 +221,7 @@ class TestSelfBleuCorpusMetric:
 					bcm = SelfBleuCorpusMetric(dataloader, gen_key, sample=4000)
 				assert bcm.sample == 4000
 
+				rng_state_st = random.getstate()
 				bcm.forward(data)
 				if use_tqdm:
 					assert np.isclose(bcm.close()['self-bleu'], 1.0 * sum(fake_bleu_irl) / len(fake_bleu_irl))
@@ -229,17 +234,21 @@ class TestSelfBleuCorpusMetric:
 					assert not multiprocessing.pool.Pool.called
 				assert bcm.sample == sample
 				assert same_dict(data, _data)
+				rng_state_ed = random.getstate()
+				assert operator.eq(rng_state_st, rng_state_ed)
 
+	def test_version(self):
+		version_test(SelfBleuCorpusMetric, dataloader=FakeDataLoader())
 
 # def test_self_bleu_bug(self):
-# 	dataloader = FakeDataLoader()
-# 	gen = [[1]]
-# 	data = {'gen': gen}
-# 	bcm = SelfBleuCorpusMetric(dataloader)
+#	 dataloader = FakeDataLoader()
+#	 gen = [[1]]
+#	 data = {'gen': gen}
+#	 bcm = SelfBleuCorpusMetric(dataloader)
 
-# 	with pytest.raises(ZeroDivisionError):
-# 		bcm.forward(data)
-# 		bcm.close()
+#	 with pytest.raises(ZeroDivisionError):
+#		 bcm.forward(data)
+#		 bcm.close()
 
 fwbw_bleu_test_parameter = generate_testcase( \
 	(zip(test_argument), "add"),
@@ -347,6 +356,7 @@ class TestFwBwBleuCorpusMetric:
 				else:
 					bcm = FwBwBleuCorpusMetric(dataloader, data[reference_key], gen_key, sample=sample)
 
+				rng_state_st = random.getstate()
 				assert bcm.sample == sample
 				bcm.forward(data)
 				if use_tqdm:
@@ -370,20 +380,24 @@ class TestFwBwBleuCorpusMetric:
 					assert not tqdm.tqdm.called
 					assert not multiprocessing.pool.Pool.called
 				assert same_dict(data, _data)
+				rng_state_ed = random.getstate()
+				assert operator.eq(rng_state_st, rng_state_ed)
 
+	def test_version(self):
+		version_test(FwBwBleuCorpusMetric, dataloader=FakeDataLoader())
 
 # def test_fwbwbleu_bug(self):
-# 	dataloader = FakeDataLoader()
-# 	ref = [[2, 1, 3]]
-# 	gen = [[1]]
-# 	reference_key = 'resp_allvocabs'
-# 	data = {reference_key: ref, 'gen': gen}
-# 	dataloader.data["test"][reference_key] = data[reference_key]
-# 	bcm = FwBwBleuCorpusMetric(dataloader, reference_key)
+#	 dataloader = FakeDataLoader()
+#	 ref = [[2, 1, 3]]
+#	 gen = [[1]]
+#	 reference_key = 'resp_allvocabs'
+#	 data = {reference_key: ref, 'gen': gen}
+#	 dataloader.data["test"][reference_key] = data[reference_key]
+#	 bcm = FwBwBleuCorpusMetric(dataloader, reference_key)
 
-# 	with pytest.raises(ZeroDivisionError):
-# 		bcm.forward(data)
-# 		bcm.close()
+#	 with pytest.raises(ZeroDivisionError):
+#		 bcm.forward(data)
+#		 bcm.close()
 
 
 multi_bleu_test_parameter = generate_testcase( \
@@ -481,6 +495,9 @@ class TestMultiTurnBleuCorpusMetric:
 			mtbcm.forward(data)
 			assert np.isclose(mtbcm.close()['bleu'], self.get_bleu(dataloader, data, reference_key, gen_key))
 		assert same_dict(data, _data)
+
+	def test_version(self):
+		version_test(MultiTurnBleuCorpusMetric, dataloader=FakeMultiDataloader())
 
 	@pytest.mark.skip()
 	def test_bleu(self):

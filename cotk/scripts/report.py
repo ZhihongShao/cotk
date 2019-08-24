@@ -23,7 +23,7 @@ SHOW_URL = DASHBOARD_URL + "/show?id=%d"
 BACKUP_FILE = '.cotk_upload_backup'
 FILL = lambda str: textwrap.fill(textwrap.dedent(str))
 
-def run_model(entry, args):
+def run_model(entry, args, result_path):
 	'''Run the model and record the info of library'''
 	# before run model
 	# cotk recorder start
@@ -42,13 +42,14 @@ def run_model(entry, args):
 
 	# after run model
 	# cotk recorder end
-	return close_recorder()
+	results = read_and_validate_result(result_path)
+	return close_recorder(results)
 
 def read_and_validate_result(result_path):
 	if not os.path.isfile(result_path):
 		raise ValueError("Result file ({}) is not found.".format(result_path))
 	try:
-		result = json.load(open(result_path, "r"))
+		result = json.load(open(result_path, "r", encoding='utf-8'))
 	except json.JSONDecodeError as err:
 		raise json.JSONDecodeError("{} is not a valid json. {}".format(result_path, err.msg),\
 				err.doc, err.pos)
@@ -95,7 +96,7 @@ def upload_report(result_path, entry, args, working_dir, \
 def get_local_token():
 	'''Read locally-saved token'''
 	if os.path.exists(main.CONFIG_FILE):
-		return json.load(open(main.CONFIG_FILE, 'r'))['token']
+		return json.load(open(main.CONFIG_FILE, 'r', encoding='utf-8'))['token']
 	else:
 		raise RuntimeError("Please set your token. \n" + \
 						   "    Either using \"--token\" to specify token temporarily\n" + \
@@ -162,7 +163,7 @@ to check your changes.")
 
 	if not cargs.only_upload:
 		LOGGER.info("Running your model at '%s' with arguments: %s.", cargs.entry, extra_args)
-		cotk_record_information = run_model(cargs.entry, extra_args)
+		cotk_record_information = run_model(cargs.entry, extra_args, cargs.result)
 		LOGGER.info("Your model has exited.")
 
 		if in_git:
@@ -173,16 +174,14 @@ to check your changes.")
 			data = {"entry": cargs.entry, "args": extra_args,\
 			"cotk_record_information": cotk_record_information}
 
-		json.dump(data, open(config_file, 'w'))
+		json.dump(data, open(config_file, 'w', encoding='utf-8'))
 		LOGGER.info("Runtime information has dumped into %s.", config_file)
-
-		read_and_validate_result(cargs.result)
 	else:
 
 		if not os.path.isfile(config_file):
 			raise RuntimeError(".model_config.json not found. It seems you have not run your \
 model with cotk. You can't use \"only-upload\" before \"only-run\".")
-		data = json.load(open(config_file))
+		data = json.load(open(config_file, 'r', encoding='utf-8'))
 
 	if not cargs.only_run:
 		LOGGER.info("Collecting info for upload...")

@@ -2,6 +2,7 @@ r'''Containing NgramFwBwPerplexityMetric'''
 
 from .metric import MetricBase
 from ..models.ngram_language_model import KneserNeyInterpolated
+from .._utils import hooks
 
 class NgramFwBwPerplexityMetric(MetricBase):
 	r'''Metric for calculating n gram forward perplexity and backward perplexity.
@@ -13,8 +14,13 @@ class NgramFwBwPerplexityMetric(MetricBase):
 			are passed to :func:`forward` by ``dataloader.data["test"][self.reference_test_key]``.
 		{MetricBase.GEN_KEY_ARGUMENTS}
 	'''
+
+	_name = 'NgramFwBwPerplexityMetric'
+	_version = 1
+
+	@hooks.hook_metric
 	def __init__(self, dataloader, ngram, reference_test_list, gen_key="gen", cpu_count=None):
-		super().__init__()
+		super().__init__(self._name, self._version)
 		self.dataloader = dataloader
 		self.ngram = ngram
 		self.reference_test_list = reference_test_list
@@ -38,6 +44,7 @@ class NgramFwBwPerplexityMetric(MetricBase):
 		for gen_sent in gen:
 			self.hyps.append(list(self.dataloader.convert_ids_to_tokens(gen_sent, trim=True)))
 
+	@hooks.hook_metric_close
 	def close(self):
 		'''Return a dict which contains:
 

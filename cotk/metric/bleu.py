@@ -9,6 +9,7 @@ import numpy as np
 import tqdm
 from nltk.translate.bleu_score import corpus_bleu, sentence_bleu, SmoothingFunction
 from .metric import MetricBase
+from .._utils import hooks
 
 
 def _replace_unk(_input, _unk_id, _target=-1):
@@ -52,9 +53,13 @@ class BleuCorpusMetric(MetricBase):
 		{MetricBase.GEN_KEY_ARGUMENTS}
 	'''
 
+	_name = 'BleuCorpusMetric'
+	_version = 1
+
+	@hooks.hook_metric
 	def __init__(self, dataloader, ignore_smoothing_error=False,\
 			reference_allvocabs_key="ref_allvocabs", gen_key="gen"):
-		super().__init__()
+		super().__init__(self._name, self._version)
 		self.dataloader = dataloader
 		self.ignore_smoothing_error = ignore_smoothing_error
 		self.reference_allvocabs_key = reference_allvocabs_key
@@ -99,6 +104,7 @@ class BleuCorpusMetric(MetricBase):
 			self.refs.append([reference])
 		self._hash_relevant_data(relevant_data)
 
+	@hooks.hook_metric_close
 	def close(self):
 		'''
 		Returns:
@@ -141,12 +147,16 @@ class SelfBleuCorpusMetric(MetricBase):
 			will be less than ``sample`` if the size of hypotheses is smaller than ``sample``
 	'''
 
+	_name = 'SelfBleuCorpusMetric'
+	_version = 1
+
+	@hooks.hook_metric
 	def __init__(self, dataloader, \
 		gen_key="gen", \
 		sample=1000, \
 		seed=1229, \
 		cpu_count=None):
-		super().__init__()
+		super().__init__(self._name, self._version)
 		self.dataloader = dataloader
 		self.gen_key = gen_key
 		self.sample = sample
@@ -183,6 +193,7 @@ class SelfBleuCorpusMetric(MetricBase):
 		for gen_sen in gen:
 			self.hyps.append(self.dataloader.trim(gen_sen))
 
+	@hooks.hook_metric_close
 	def close(self):
 		'''
 		Returns:
@@ -201,8 +212,12 @@ class SelfBleuCorpusMetric(MetricBase):
 
 		if self.sample > len(self.hyps):
 			self.sample = len(self.hyps)
+
+		rng_state = random.getstate()
 		random.seed(self.seed)
 		random.shuffle(self.hyps)
+		random.setstate(rng_state)
+
 		ref = self.hyps[:self.sample]
 		_ref = _replace_unk(ref, self.dataloader.unk_id)
 
@@ -246,13 +261,17 @@ class FwBwBleuCorpusMetric(MetricBase):
 		if the size of them is smaller than ``sample``.
 	'''
 
+	_name = 'FwBwBleuCorpusMetric'
+	_version = 1
+
+	@hooks.hook_metric
 	def __init__(self, dataloader, \
 			reference_test_list, \
 			gen_key="gen", \
 			sample=1000, \
 			seed=1229, \
 			cpu_count=None):
-		super().__init__()
+		super().__init__(self._name, self._version)
 		self.dataloader = dataloader
 		self.reference_test_list = reference_test_list
 		self.gen_key = gen_key
@@ -290,7 +309,7 @@ class FwBwBleuCorpusMetric(MetricBase):
 		for gen_sen in gen:
 			self.hyps.append(list(self.dataloader.trim(gen_sen)))
 
-
+	@hooks.hook_metric_close
 	def close(self):
 		'''
 		Returns:
@@ -317,9 +336,11 @@ class FwBwBleuCorpusMetric(MetricBase):
 			raise RuntimeError('`sample_refs` should be more than 1, \
 				whose value is `{}`'.format(sample_refs))
 
+		rng_state = random.getstate()
 		random.seed(self.seed)
 		random.shuffle(self.hyps)
 		random.shuffle(self.refs)
+		random.setstate(rng_state)
 
 		self.hyps = _replace_unk(self.hyps, self.dataloader.unk_id)
 
@@ -381,12 +402,17 @@ class MultiTurnBleuCorpusMetric(MetricBase):
 		{MetricBase.MULTI_TURN_GEN_KEY_ARGUMENTS}
 		{MetricBase.MULTI_TURN_LENGTH_KEY_ARGUMENTS}
 	'''
+
+	_name = 'MultiTurnBleuCorpusMetric'
+	_version = 1
+
+	@hooks.hook_metric
 	def __init__(self, dataloader, ignore_smoothing_error=False,\
 					multi_turn_reference_allvocabs_key="reference_allvocabs", \
 					multi_turn_gen_key="multi_turn_gen", \
 					turn_len_key="turn_length" \
 			  ):
-		super().__init__()
+		super().__init__(self._name, self._version)
 		self.dataloader = dataloader
 		self.ignore_smoothing_error = ignore_smoothing_error
 		self.multi_turn_reference_allvocabs_key = multi_turn_reference_allvocabs_key
@@ -436,6 +462,7 @@ class MultiTurnBleuCorpusMetric(MetricBase):
 				self.hyps.append(list(self.dataloader.trim(gen_session[j])))
 				self.refs.append([list(self.dataloader.trim(ref_session[j])[1:])])
 
+	@hooks.hook_metric_close
 	def close(self):
 		'''
 		Returns:

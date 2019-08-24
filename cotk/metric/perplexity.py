@@ -5,9 +5,10 @@ import random
 import numpy as np
 from .metric import MetricBase
 from .._utils.imports import DummyObject
+from .._utils import hooks
 try:
 	import torch
-except (ImportError, ModuleNotFoundError) as err:
+except ImportError as err:
 	torch = DummyObject(err)
 	torch.Tensor = DummyObject(err)
 
@@ -28,6 +29,10 @@ class PerplexityMetric(MetricBase):
 			Default: ``False``.
 	'''
 
+	_name = 'PerplexityMetric'
+	_version = 1
+
+	@hooks.hook_metric
 	def __init__(self, dataloader, \
 					   reference_allvocabs_key="ref_allvocabs", \
 					   reference_len_key="ref_length", \
@@ -35,7 +40,7 @@ class PerplexityMetric(MetricBase):
 					   invalid_vocab=False, \
 					   full_check=False \
 			  ):
-		super().__init__()
+		super().__init__(self._name, self._version)
 		self.dataloader = dataloader
 		self.reference_allvocabs_key = reference_allvocabs_key
 		self.reference_len_key = reference_len_key
@@ -269,6 +274,7 @@ class PerplexityMetric(MetricBase):
 
 		return word_loss, length_sum
 
+	@hooks.hook_metric_close
 	def close(self):
 		r'''
 		Returns:
@@ -331,13 +337,17 @@ class MultiTurnPerplexityMetric(MetricBase):
 			Default: ``False``.
 	'''
 
+	_name = 'MultiTurnPerplexityMetric'
+	_version = 1
+
+	@hooks.hook_metric
 	def __init__(self, dataloader, multi_turn_reference_allvocabs_key="multi_turn_ref_allvocabs", \
 					   multi_turn_reference_len_key="multi_turn_ref_length", \
 					   multi_turn_gen_log_prob_key="multi_turn_gen_log_prob", \
 					   invalid_vocab=False, \
 					   full_check=False \
 			  ):
-		super().__init__()
+		super().__init__(self._name, self._version)
 		self.dataloader = dataloader
 		self.multi_turn_reference_allvocabs_key = multi_turn_reference_allvocabs_key
 		self.multi_turn_reference_len_key = multi_turn_reference_len_key
@@ -405,9 +415,10 @@ class MultiTurnPerplexityMetric(MetricBase):
 			if len(reference_allvocabs[i]) < turn_length or len(gen_log_prob[i]) < turn_length:
 				raise ValueError("Turn num is not matched.")
 			self.sub_metric.forward({"ref_allvocabs": reference_allvocabs[i][:turn_length], \
-					"ref_length": sent_length, \
+					"ref_length": sent_length[:turn_length], \
 					"gen_log_prob": gen_log_prob[i][:turn_length]})
 
+	@hooks.hook_metric_close
 	def close(self):
 		r'''
 		Returns:
