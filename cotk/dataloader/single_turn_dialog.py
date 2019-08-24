@@ -77,7 +77,7 @@ class SingleTurnDialog(LanguageProcessingBase):
 		Returns:
 			list: a list of tokens(str)
 		'''
-		super().tokenize(sentence, remains_capital or self._remains_capital, \
+		return super().tokenize(sentence, remains_capital or self._remains_capital, \
 			tokenizer or self._tokenizer)
 
 	def _load_data(self):

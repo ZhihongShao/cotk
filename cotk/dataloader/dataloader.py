@@ -132,7 +132,7 @@ class LanguageProcessingBase(Dataloader):
 		origin_data = {}
 
 		for key in self.key_name:
-			f_file = open("%s/%s.txt" % (file_path, key))
+			f_file = open("%s/%s.txt" % (file_path, key), encoding='utf-8')
 			origin_data[key] = {}
 			for data_key in data_keys:
 				origin_data[key][data_key] = []
@@ -192,7 +192,7 @@ class LanguageProcessingBase(Dataloader):
 			length = []
 			for data_key in data_keys:
 				length.extend([len(x) for x in origin_data[key][data_key]])
-			cut_num += np.sum( \
+			cut_num = np.sum( \
 				np.maximum( \
 					np.array(length) - max_sent_length + 1, \
 				0))
