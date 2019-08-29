@@ -3,6 +3,7 @@ A utils providing callback hooks.
 '''
 
 from inspect import signature
+from functools import wraps
 import json
 import copy
 import weakref
