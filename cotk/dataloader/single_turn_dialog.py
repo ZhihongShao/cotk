@@ -83,7 +83,7 @@ class SingleTurnDialog(LanguageProcessingBase):
 	def _load_data(self):
 		r'''Loading dataset, invoked during the initialization of :class:`LanguageProcessingBase`.
 		'''
-		super()._general_load_data(self._file_path, ['post', 'resp'], \
+		return super()._general_load_data(self._file_path, ['post', 'resp'], \
 			self._min_vocab_times, self._max_sent_length, self._invalid_vocab_times)
 
 	def get_batch(self, key, indexes):
